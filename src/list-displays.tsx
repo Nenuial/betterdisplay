@@ -8,6 +8,7 @@ import {
   Display,
 } from "./utils";
 import { toggleDisplay, togglePIP } from "./actions";
+import ResolutionForm from "./list-resolutions";
 
 type FilterOption = "all" | "displays" | "virtualScreens";
 
@@ -73,26 +74,33 @@ function DisplayItem({ display, status, resolution, isMain, onToggle }: DisplayI
             }}
           />
           {normalizedStatus.toLowerCase() === "on" && (
-            <Action
-              title="Toggle PIP"
-              onAction={async () => {
-                try {
-                  await togglePIP(display.tagID);
-                  await showToast({
-                    title: "PIP toggled",
-                    message: `${display.name} PIP has been toggled.`,
-                    style: Toast.Style.Success,
-                  });
-                  onToggle();
-                } catch (error) {
-                  await showToast({
-                    title: "Error toggling PIP",
-                    message: error instanceof Error ? error.message : "Unknown error",
-                    style: Toast.Style.Failure,
-                  });
-                }
-              }}
-            />
+            <>
+              <Action
+                title="Toggle PIP"
+                onAction={async () => {
+                  try {
+                    await togglePIP(display.tagID);
+                    await showToast({
+                      title: "PIP toggled",
+                      message: `${display.name} PIP has been toggled.`,
+                      style: Toast.Style.Success,
+                    });
+                    onToggle();
+                  } catch (error) {
+                    await showToast({
+                      title: "Error toggling PIP",
+                      message: error instanceof Error ? error.message : "Unknown error",
+                      style: Toast.Style.Failure,
+                    });
+                  }
+                }}
+              />
+              <Action.Push
+                title="Change Resolution"
+                shortcut={{ modifiers: ["cmd", "shift"], key: "m" }}
+                target={<ResolutionForm display={{ tagID: display.tagID, name: display.name }} />}
+              />
+            </>
           )}
         </ActionPanel>
       }
@@ -135,9 +143,11 @@ export default function ListDisplays() {
     loadMainDisplay();
   }, []);
 
-  // Fetch connection statuses. Refresh when refreshCount changes.
+  // Combined effect: fetch statuses first, then fetch resolutions for displays that are "on".
   useEffect(() => {
-    async function loadStatuses() {
+    async function loadStatusesAndResolutions() {
+      if (displays.length === 0) return;
+
       const newStatuses: { [tagID: string]: string } = {};
       await Promise.all(
         displays.map(async (display) => {
@@ -146,31 +156,25 @@ export default function ListDisplays() {
         })
       );
       setStatuses(newStatuses);
-    }
-    if (displays.length > 0) {
-      loadStatuses();
-    }
-  }, [displays, refreshCount]);
 
-  // Fetch resolutions only for displays that are "on".
-  useEffect(() => {
-    async function loadResolutions() {
       const newResolutions: { [tagID: string]: string } = {};
       await Promise.all(
         displays.map(async (display) => {
-          const status = statuses[display.tagID];
+          const status = newStatuses[display.tagID];
           if (status && status.toLowerCase() === "on") {
-            const resolution = await fetchDisplayResolution(display.tagID);
-            newResolutions[display.tagID] = resolution;
+            try {
+              const resolution = await fetchDisplayResolution(display.tagID);
+              newResolutions[display.tagID] = resolution;
+            } catch (error) {
+              console.error(`Error fetching resolution for display ${display.tagID}:`, error);
+            }
           }
         })
       );
       setResolutions(newResolutions);
     }
-    if (displays.length > 0 && Object.keys(statuses).length > 0) {
-      loadResolutions();
-    }
-  }, [displays, statuses, refreshCount]);
+    loadStatusesAndResolutions();
+  }, [displays, refreshCount]);
 
   // Function to trigger a refresh of statuses/resolutions.
   const handleToggleRefresh = () => {
