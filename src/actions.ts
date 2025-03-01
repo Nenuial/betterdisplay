@@ -1,5 +1,6 @@
 import { exec } from "child_process";
 import { promisify } from "util";
+import { getPreferenceValues } from "@raycast/api";
 
 const execPromise = promisify(exec);
 
@@ -45,4 +46,29 @@ export async function setDisplayResolution(tagID: string, modeNumber: string): P
     console.error(`Error setting display resolution for tagID ${tagID}:`, error);
     throw error;
   }
+}
+
+// New functions for brightness adjustments.
+export async function increaseBrightness(tagID: string): Promise<string> {
+  const preferences = getPreferenceValues<{ brightnessIncrement: string }>();
+  const increment = Number(preferences.brightnessIncrement) || 0.05;
+  const getCmd = `/Applications/BetterDisplay.app/Contents/MacOS/BetterDisplay get -tagID=${tagID} -feature=brightness`;
+  const { stdout: currStr } = await execPromise(getCmd);
+  const currentBrightness = parseFloat(currStr.trim());
+  const newBrightness = Math.min(1, currentBrightness + increment);
+  const setCmd = `/Applications/BetterDisplay.app/Contents/MacOS/BetterDisplay set -tagID=${tagID} -feature=brightness -value=${newBrightness}`;
+  const { stdout } = await execPromise(setCmd);
+  return stdout.trim();
+}
+
+export async function decreaseBrightness(tagID: string): Promise<string> {
+  const preferences = getPreferenceValues<{ brightnessIncrement: string }>();
+  const increment = Number(preferences.brightnessIncrement) || 0.05;
+  const getCmd = `/Applications/BetterDisplay.app/Contents/MacOS/BetterDisplay get -tagID=${tagID} -feature=brightness`;
+  const { stdout: currStr } = await execPromise(getCmd);
+  const currentBrightness = parseFloat(currStr.trim());
+  const newBrightness = Math.max(0, currentBrightness - increment);
+  const setCmd = `/Applications/BetterDisplay.app/Contents/MacOS/BetterDisplay set -tagID=${tagID} -feature=brightness -value=${newBrightness}`;
+  const { stdout } = await execPromise(setCmd);
+  return stdout.trim();
 }

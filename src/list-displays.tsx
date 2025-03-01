@@ -8,7 +8,7 @@ import {
   fetchMainDisplay,
   Display,
 } from "./utils";
-import { toggleDisplay, togglePIP } from "./actions";
+import { toggleDisplay, togglePIP, increaseBrightness, decreaseBrightness } from "./actions";
 import ResolutionList from "./list-resolutions";
 import events from "./events";
 
@@ -61,6 +61,7 @@ function DisplayItem({ display, status, resolution, isMain, onToggle }: DisplayI
         <ActionPanel>
           <Action
             title="Toggle Display"
+            icon={Icon.Power}
             onAction={() =>
               handleAction(
                 () => toggleDisplay(display.tagID),
@@ -74,6 +75,7 @@ function DisplayItem({ display, status, resolution, isMain, onToggle }: DisplayI
             <>
               <Action
                 title="Toggle PIP"
+                icon={Icon.Image}
                 onAction={() =>
                   handleAction(
                     () => togglePIP(display.tagID),
@@ -83,8 +85,35 @@ function DisplayItem({ display, status, resolution, isMain, onToggle }: DisplayI
                   )
                 }
               />
+              <Action
+                title="Increase Brightness"
+                icon={Icon.ArrowUp}
+                shortcut={{ modifiers: ["cmd", "shift"], key: "arrowUp" }}
+                onAction={() =>
+                  handleAction(
+                    () => increaseBrightness(display.tagID),
+                    "Brightness Increased",
+                    `${display.name} brightness increased.`,
+                    "Error increasing brightness"
+                  )
+                }
+              />
+              <Action
+                title="Decrease Brightness"
+                icon={Icon.ArrowDown}
+                shortcut={{ modifiers: ["cmd", "shift"], key: "arrowDown" }}
+                onAction={() =>
+                  handleAction(
+                    () => decreaseBrightness(display.tagID),
+                    "Brightness Decreased",
+                    `${display.name} brightness decreased.`,
+                    "Error decreasing brightness"
+                  )
+                }
+              />
               <Action.Push
                 title="Change Resolution"
+                icon={Icon.ArrowsExpand}
                 shortcut={{ modifiers: ["cmd", "shift"], key: "m" }}
                 target={<ResolutionList display={{ tagID: display.tagID, name: display.name }} />}
               />

@@ -18,6 +18,25 @@
       "mode": "view"
     }
   ],
+  "preferences": [
+    {
+      "name": "brightnessIncrement",
+      "title": "Brightness Increment",
+      "type": "dropdown",
+      "required": true,
+      "description": "The brightness increment when changing the brightness of a display",
+      "data": [
+        {
+          "value": "0.05",
+          "title": "5%"
+        },
+        {
+          "value": "0.1",
+          "title": "10%"
+        }
+      ]
+    }
+  ],
   "dependencies": {
     "@raycast/api": "^1.93.0",
     "@raycast/utils": "^1.17.0"
