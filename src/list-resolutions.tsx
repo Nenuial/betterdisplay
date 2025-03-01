@@ -1,19 +1,16 @@
 import { ActionPanel, Form, Action, showToast, Toast, Icon, useNavigation } from "@raycast/api";
 import { useState, useEffect } from "react";
-import { exec } from "child_process";
-import { promisify } from "util";
+import { fetchDisplayModeList, setDisplayResolution } from "./actions";
 
-const execPromise = promisify(exec);
-
-type ResolutionOption = {
+export type ResolutionOption = {
   value: string; // The index number (e.g., "20")
-  title: string; // Formatted details (e.g., "3440x1440 | 50Hz | 10bpc | Default")
+  title: string; // Formatted details (e.g., "3440x832 | HiDPI | 60Hz | 10bpc | Default | Native")
   unsafe: boolean;
   icon: string;
   current: boolean;
 };
 
-type ResolutionFormProps = {
+export type ResolutionFormProps = {
   display: {
     tagID: string;
     name: string;
@@ -35,10 +32,10 @@ function parseResolutionList(output: string): ResolutionOption[] {
     const tokens = details.split(/\s+/);
     if (tokens.length < 3) continue;
     
-    // First token is always the resolution.
+    // First token is resolution.
     const resolution = tokens[0];
     
-    // Check if "HiDPI" is present immediately after the resolution.
+    // Check if "HiDPI" appears immediately after resolution.
     let hasHiDPI = false;
     let startIndex = 1;
     if (tokens[1] === "HiDPI") {
@@ -46,11 +43,10 @@ function parseResolutionList(output: string): ResolutionOption[] {
       startIndex = 2;
     }
     
-    // Next tokens: refresh rate and color depth.
     const refreshRate = tokens[startIndex] || "";
     const colorDepth = tokens[startIndex + 1] || "";
     
-    // Build extras array: include "Default" if present.
+    // Build extras: "Default" if present.
     const extras: string[] = [];
     if (tokens.includes("Default")) {
       extras.push("Default");
@@ -60,16 +56,13 @@ function parseResolutionList(output: string): ResolutionOption[] {
       extras.push("Native");
     }
     
-    // Build title: start with resolution, then HiDPI (if present), then refresh rate, color depth, then extras.
-    const titleParts: string[] = [];
-    titleParts.push(resolution);
+    // Build title: resolution, then HiDPI if present, then refresh rate, then color depth, then extras.
+    const titleParts: string[] = [resolution];
     if (hasHiDPI) {
       titleParts.push("HiDPI");
     }
-    titleParts.push(refreshRate);
-    titleParts.push(colorDepth);
-    titleParts.push(...extras);
-    const title = titleParts.join(" | ");
+    titleParts.push(refreshRate, colorDepth, ...extras);
+    const title = titleParts.filter(Boolean).join(" | ");
     
     const unsafe = tokens.includes("Unsafe");
     const current = tokens.includes("Current");
@@ -77,7 +70,6 @@ function parseResolutionList(output: string): ResolutionOption[] {
     
     options.push({ value: index, title, unsafe, icon, current });
   }
-  
   return options;
 }
 
@@ -93,9 +85,7 @@ export default function ResolutionForm(props: ResolutionFormProps) {
   useEffect(() => {
     async function loadResolutions() {
       try {
-        const { stdout } = await execPromise(
-          `/Applications/BetterDisplay.app/Contents/MacOS/BetterDisplay get -tagID=${tagID} -feature=displayModeList`
-        );
+        const stdout = await fetchDisplayModeList(tagID);
         const options = parseResolutionList(stdout);
         setResolutionOptions(options);
       } catch (error) {
@@ -121,8 +111,7 @@ export default function ResolutionForm(props: ResolutionFormProps) {
             onSubmit={async (values) => {
               const selectedModeNumber = values.resolution as string;
               try {
-                const command = `/Applications/BetterDisplay.app/Contents/MacOS/BetterDisplay set -tagID=${tagID} -feature=displayModeNumber -value=${selectedModeNumber}`;
-                await execPromise(command);
+                await setDisplayResolution(tagID, selectedModeNumber);
                 await showToast({
                   title: "Resolution Set",
                   message: `Display mode changed to option ${selectedModeNumber}`,
