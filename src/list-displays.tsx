@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { List, Color, ActionPanel, Action, Toast, showToast } from "@raycast/api";
+import { List, Color, ActionPanel, Action, showToast, Toast, Icon } from "@raycast/api";
 import {
   fetchDisplays,
   fetchDisplayStatus,
@@ -8,7 +8,8 @@ import {
   Display,
 } from "./utils";
 import { toggleDisplay, togglePIP } from "./actions";
-import ResolutionForm from "./list-resolutions";
+import ResolutionList from "./list-resolutions";
+import events from "./events";
 
 type FilterOption = "all" | "displays" | "virtualScreens";
 
@@ -24,24 +25,12 @@ function DisplayItem({ display, status, resolution, isMain, onToggle }: DisplayI
   const normalizedStatus = status || "Loading";
   const statusColor = normalizedStatus.toLowerCase() === "on" ? Color.Green : Color.Red;
 
-  // Build accessories. Always include the status tag.
+  // Build accessories: always show status; if on, show resolution.
   const accessories: List.Item.Accessory[] = [
-    {
-      tag: {
-        value: normalizedStatus,
-        color: statusColor,
-      },
-    },
+    { tag: { value: normalizedStatus, color: statusColor } },
   ];
-
-  // Only show resolution if the display is on.
   if (normalizedStatus.toLowerCase() === "on" && resolution && resolution !== "Loading") {
-    accessories.push({
-      tag: {
-        value: resolution,
-        color: Color.Blue,
-      },
-    });
+    accessories.push({ tag: { value: resolution, color: Color.Blue } });
   }
 
   return (
@@ -98,7 +87,7 @@ function DisplayItem({ display, status, resolution, isMain, onToggle }: DisplayI
               <Action.Push
                 title="Change Resolution"
                 shortcut={{ modifiers: ["cmd", "shift"], key: "m" }}
-                target={<ResolutionForm display={{ tagID: display.tagID, name: display.name }} />}
+                target={<ResolutionList display={{ tagID: display.tagID, name: display.name }} />}
               />
             </>
           )}
@@ -117,7 +106,7 @@ export default function ListDisplays() {
   const [mainDisplay, setMainDisplay] = useState<Display | null>(null);
   const [refreshCount, setRefreshCount] = useState(0);
 
-  // Load all displays.
+  // Load displays.
   useEffect(() => {
     async function loadDisplays() {
       try {
@@ -143,7 +132,7 @@ export default function ListDisplays() {
     loadMainDisplay();
   }, []);
 
-  // Combined effect: fetch statuses first, then fetch resolutions for displays that are "on".
+  // Combined effect: fetch statuses then resolutions for displays that are "on".
   useEffect(() => {
     async function loadStatusesAndResolutions() {
       if (displays.length === 0) return;
@@ -176,12 +165,19 @@ export default function ListDisplays() {
     loadStatusesAndResolutions();
   }, [displays, refreshCount]);
 
-  // Function to trigger a refresh of statuses/resolutions.
+  // Listen for refresh events emitted by the ResolutionList.
+  useEffect(() => {
+    const handler = () => setRefreshCount((prev) => prev + 1);
+    events.on("refresh", handler);
+    return () => {
+      events.off("refresh", handler);
+    };
+  }, []);
+
   const handleToggleRefresh = () => {
     setRefreshCount((prev) => prev + 1);
   };
 
-  // Categorize displays.
   const displayItems = displays.filter((d) => d.deviceType === "Display");
   const virtualScreenItems = displays.filter((d) => d.deviceType === "VirtualScreen");
 
@@ -190,11 +186,7 @@ export default function ListDisplays() {
       isLoading={isLoading}
       searchBarPlaceholder="Filter displays by name"
       searchBarAccessory={
-        <List.Dropdown
-          tooltip="Filter Display Type"
-          storeValue={true}
-          onChange={(newValue) => setFilter(newValue as FilterOption)}
-        >
+        <List.Dropdown tooltip="Filter Display Type" storeValue={true} onChange={(newValue) => setFilter(newValue as FilterOption)}>
           <List.Dropdown.Section title="Filter">
             <List.Dropdown.Item value="all" title="All" />
             <List.Dropdown.Item value="displays" title="Displays" />

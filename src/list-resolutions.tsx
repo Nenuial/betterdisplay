@@ -1,16 +1,21 @@
-import { ActionPanel, Form, Action, showToast, Toast, Icon, useNavigation } from "@raycast/api";
 import { useState, useEffect } from "react";
+import { List, ActionPanel, Action, showToast, Toast, useNavigation, Color, Icon } from "@raycast/api";
 import { fetchDisplayModeList, setDisplayResolution } from "./actions";
+import events from "./events";
 
 export type ResolutionOption = {
-  value: string; // The index number (e.g., "20")
-  title: string; // Formatted details (e.g., "3440x832 | HiDPI | 60Hz | 10bpc | Default | Native")
+  modeNumber: string; // The index number (e.g., "20")
+  resolution: string; // e.g., "3440x1440"
+  hiDPI: boolean;
+  refreshRate: string; // e.g., "50Hz"
+  bpc: string; // e.g., "10bpc"
+  isDefault: boolean;
+  native: boolean;
   unsafe: boolean;
-  icon: string;
   current: boolean;
 };
 
-export type ResolutionFormProps = {
+export type ResolutionListProps = {
   display: {
     tagID: string;
     name: string;
@@ -18,67 +23,49 @@ export type ResolutionFormProps = {
 };
 
 function parseResolutionList(output: string): ResolutionOption[] {
-  // Split the output into non-empty lines.
   const lines = output.split("\n").filter((line) => line.trim().length > 0);
   const options: ResolutionOption[] = [];
-  
   for (const line of lines) {
     // Example line:
-    // "20 - 1280x832 HiDPI 60Hz 10bpc Native"
+    // "20 - 3440x1440 HiDPI 50Hz 10bpc Current Default Native"
     const parts = line.split(" - ");
     if (parts.length < 2) continue;
-    const index = parts[0].trim(); // e.g. "20"
+    const modeNumber = parts[0].trim();
     const details = parts[1].trim();
     const tokens = details.split(/\s+/);
     if (tokens.length < 3) continue;
-    
-    // First token is resolution.
     const resolution = tokens[0];
-    
-    // Check if "HiDPI" appears immediately after resolution.
-    let hasHiDPI = false;
-    let startIndex = 1;
-    if (tokens[1] === "HiDPI") {
-      hasHiDPI = true;
-      startIndex = 2;
+    let hiDPI = false;
+    let index = 1;
+    if (tokens[index] === "HiDPI") {
+      hiDPI = true;
+      index++;
     }
-    
-    const refreshRate = tokens[startIndex] || "";
-    const colorDepth = tokens[startIndex + 1] || "";
-    
-    // Build extras: "Default" if present.
-    const extras: string[] = [];
-    if (tokens.includes("Default")) {
-      extras.push("Default");
-    }
-    // "Native" should always be last if present.
-    if (tokens.includes("Native")) {
-      extras.push("Native");
-    }
-    
-    // Build title: resolution, then HiDPI if present, then refresh rate, then color depth, then extras.
-    const titleParts: string[] = [resolution];
-    if (hasHiDPI) {
-      titleParts.push("HiDPI");
-    }
-    titleParts.push(refreshRate, colorDepth, ...extras);
-    const title = titleParts.filter(Boolean).join(" | ");
-    
+    const refreshRate = tokens[index] || "";
+    const bpc = tokens[index + 1] || "";
+    const isDefault = tokens.includes("Default");
+    const native = tokens.includes("Native");
     const unsafe = tokens.includes("Unsafe");
     const current = tokens.includes("Current");
-    const icon = current ? Icon.CircleFilled : Icon.CircleDisabled;
-    
-    options.push({ value: index, title, unsafe, icon, current });
+    options.push({
+      modeNumber,
+      resolution,
+      hiDPI,
+      refreshRate,
+      bpc,
+      isDefault,
+      native,
+      unsafe,
+      current,
+    });
   }
   return options;
 }
 
-export default function ResolutionForm(props: ResolutionFormProps) {
+export default function ResolutionList(props: ResolutionListProps) {
   const { display } = props;
-  const tagID = display.tagID;
-  const displayName = display.name;
+  const { tagID, name: displayName } = display;
   const { pop } = useNavigation();
-
   const [resolutionOptions, setResolutionOptions] = useState<ResolutionOption[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -97,57 +84,118 @@ export default function ResolutionForm(props: ResolutionFormProps) {
     loadResolutions();
   }, [tagID]);
 
-  // Set defaultValue to the value of the current resolution option (if available)
-  const defaultValue = resolutionOptions.find((option) => option.current)?.value;
+  // Determine default value as the modeNumber of the current resolution.
+  const defaultValue = resolutionOptions.find((option) => option.current)?.modeNumber;
+
+  // Divide options into safe and unsafe.
+  const safeOptions = resolutionOptions.filter((option) => !option.unsafe);
+  const unsafeOptions = resolutionOptions.filter((option) => option.unsafe);
 
   return (
-    <Form
-      isLoading={isLoading}
-      navigationTitle={`Change Resolution for ${displayName}`}
-      actions={
-        <ActionPanel>
-          <Action.SubmitForm
-            title="Set Resolution"
-            onSubmit={async (values) => {
-              const selectedModeNumber = values.resolution as string;
-              try {
-                await setDisplayResolution(tagID, selectedModeNumber);
-                await showToast({
-                  title: "Resolution Set",
-                  message: `Display mode changed to option ${selectedModeNumber}`,
-                  style: Toast.Style.Success,
-                });
-                pop();
-              } catch (error) {
-                console.error("Failed to set resolution", error);
-                await showToast({
-                  title: "Error Setting Resolution",
-                  message: error instanceof Error ? error.message : "Unknown error",
-                  style: Toast.Style.Failure,
-                });
+    <List isLoading={isLoading} navigationTitle={`Change Resolution for ${displayName}`} searchBarPlaceholder="Select a resolution">
+      <List.Section title="Safe Resolutions">
+        {safeOptions.map((option) => {
+          // Build accessory tags.
+          const accessoryTags: List.Item.Accessory[] = [];
+          if (option.hiDPI) {
+            accessoryTags.push({ tag: { value: "HiDPI", color: Color.Magenta } });
+          }
+          if (option.refreshRate) {
+            accessoryTags.push({ tag: { value: option.refreshRate, color: Color.Blue } });
+          }
+          if (option.bpc) {
+            accessoryTags.push({ tag: { value: option.bpc, color: Color.Green } });
+          }
+          if (option.native) {
+            accessoryTags.push({ tag: { value: "Native", color: Color.SecondaryText } });
+          }
+          return (
+            <List.Item
+              key={option.modeNumber}
+              icon={option.current ? Icon.Checkmark : Icon.Minus}
+              title={option.resolution}
+              subtitle={option.isDefault ? "Default" : undefined}
+              accessories={accessoryTags}
+              actions={
+                <ActionPanel>
+                  <Action
+                    title="Set Resolution"
+                    onAction={async () => {
+                      try {
+                        await setDisplayResolution(tagID, option.modeNumber);
+                        await showToast({
+                          title: "Resolution Set",
+                          message: `Changed to option ${option.modeNumber} (${option.resolution})`,
+                          style: Toast.Style.Success,
+                        });
+                        events.emit("refresh");
+                        pop();
+                      } catch (error) {
+                        await showToast({
+                          title: "Error Setting Resolution",
+                          message: error instanceof Error ? error.message : "Unknown error",
+                          style: Toast.Style.Failure,
+                        });
+                      }
+                    }}
+                  />
+                </ActionPanel>
               }
-            }}
-          />
-        </ActionPanel>
-      }
-    >
-      <Form.Description title="Display" text={displayName} />
-      <Form.Dropdown id="resolution" title="Resolution" defaultValue={defaultValue}>
-        <Form.Dropdown.Section title="Safe Resolutions">
-          {resolutionOptions
-            .filter((option) => !option.unsafe)
-            .map((option) => (
-              <Form.Dropdown.Item key={option.value} value={option.value} title={option.title} icon={option.icon} />
-            ))}
-        </Form.Dropdown.Section>
-        <Form.Dropdown.Section title="Unsafe Resolutions">
-          {resolutionOptions
-            .filter((option) => option.unsafe)
-            .map((option) => (
-              <Form.Dropdown.Item key={option.value} value={option.value} title={option.title} icon={option.icon} />
-            ))}
-        </Form.Dropdown.Section>
-      </Form.Dropdown>
-    </Form>
+            />
+          );
+        })}
+      </List.Section>
+      <List.Section title="Unsafe Resolutions">
+        {unsafeOptions.map((option) => {
+          const accessoryTags: List.Item.Accessory[] = [];
+          if (option.hiDPI) {
+            accessoryTags.push({ tag: { value: "HiDPI", color: Color.Magenta } });
+          }
+          if (option.refreshRate) {
+            accessoryTags.push({ tag: { value: option.refreshRate, color: Color.Blue } });
+          }
+          if (option.bpc) {
+            accessoryTags.push({ tag: { value: option.bpc, color: Color.Green } });
+          }
+          if (option.native) {
+            accessoryTags.push({ tag: { value: "Native", color: Color.SecondaryText } });
+          }
+          return (
+            <List.Item
+              key={option.modeNumber}
+              icon={option.current ? Icon.Checkmark : Icon.Minus}
+              title={option.resolution}
+              subtitle={option.isDefault ? "Default" : undefined}
+              accessories={accessoryTags}
+              actions={
+                <ActionPanel>
+                  <Action
+                    title="Set Resolution"
+                    onAction={async () => {
+                      try {
+                        await setDisplayResolution(tagID, option.modeNumber);
+                        await showToast({
+                          title: "Resolution Set",
+                          message: `Changed to option ${option.modeNumber} (${option.resolution})`,
+                          style: Toast.Style.Success,
+                        });
+                        events.emit("refresh");
+                        pop();
+                      } catch (error) {
+                        await showToast({
+                          title: "Error Setting Resolution",
+                          message: error instanceof Error ? error.message : "Unknown error",
+                          style: Toast.Style.Failure,
+                        });
+                      }
+                    }}
+                  />
+                </ActionPanel>
+              }
+            />
+          );
+        })}
+      </List.Section>
+    </List>
   );
 }
