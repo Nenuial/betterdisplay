@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { List, ActionPanel, Action, showToast, Toast, useNavigation, Color, Icon } from "@raycast/api";
 import { fetchDisplayModeList, setDisplayResolution } from "./actions";
 import events from "./events";
+import { showFailureToast } from "@raycast/utils";
 
 export type ResolutionOption = {
   modeNumber: string; // The index number (e.g., "20")
@@ -62,6 +63,50 @@ function parseResolutionList(output: string): ResolutionOption[] {
   return options;
 }
 
+// Helper to build accessory tags.
+function getAccessoryTags(option: ResolutionOption): List.Item.Accessory[] {
+  const tags: List.Item.Accessory[] = [];
+  if (option.hiDPI) tags.push({ tag: { value: "HiDPI", color: Color.Magenta } });
+  if (option.refreshRate) tags.push({ tag: { value: option.refreshRate, color: Color.Blue } });
+  if (option.bpc) tags.push({ tag: { value: option.bpc, color: Color.Green } });
+  if (option.native) tags.push({ tag: { value: "Native", color: Color.SecondaryText } });
+  return tags;
+}
+
+// New component to render a resolution item.
+function ResolutionItem({ option, tagID, pop }: { option: ResolutionOption; tagID: string; pop: () => void }) {
+  return (
+    <List.Item
+      key={option.modeNumber}
+      icon={option.current ? Icon.Checkmark : Icon.Minus}
+      title={option.resolution}
+      subtitle={option.isDefault ? "Default" : undefined}
+      accessories={getAccessoryTags(option)}
+      actions={
+        <ActionPanel>
+          <Action
+            title="Set Resolution"
+            onAction={async () => {
+              try {
+                await setDisplayResolution(tagID, option.modeNumber);
+                await showToast({
+                  title: "Resolution Set",
+                  message: `Changed to option ${option.modeNumber} (${option.resolution})`,
+                  style: Toast.Style.Success,
+                });
+                events.emit("refresh");
+                pop();
+              } catch (error) {
+                showFailureToast(error, { title: "Error Setting Resolution" });
+              }
+            }}
+          />
+        </ActionPanel>
+      }
+    />
+  );
+}
+
 export default function ResolutionList(props: ResolutionListProps) {
   const { display } = props;
   const { tagID, name: displayName } = display;
@@ -94,107 +139,14 @@ export default function ResolutionList(props: ResolutionListProps) {
   return (
     <List isLoading={isLoading} navigationTitle={`Change Resolution for ${displayName}`} searchBarPlaceholder="Select a resolution">
       <List.Section title="Safe Resolutions">
-        {safeOptions.map((option) => {
-          // Build accessory tags.
-          const accessoryTags: List.Item.Accessory[] = [];
-          if (option.hiDPI) {
-            accessoryTags.push({ tag: { value: "HiDPI", color: Color.Magenta } });
-          }
-          if (option.refreshRate) {
-            accessoryTags.push({ tag: { value: option.refreshRate, color: Color.Blue } });
-          }
-          if (option.bpc) {
-            accessoryTags.push({ tag: { value: option.bpc, color: Color.Green } });
-          }
-          if (option.native) {
-            accessoryTags.push({ tag: { value: "Native", color: Color.SecondaryText } });
-          }
-          return (
-            <List.Item
-              key={option.modeNumber}
-              icon={option.current ? Icon.Checkmark : Icon.Minus}
-              title={option.resolution}
-              subtitle={option.isDefault ? "Default" : undefined}
-              accessories={accessoryTags}
-              actions={
-                <ActionPanel>
-                  <Action
-                    title="Set Resolution"
-                    onAction={async () => {
-                      try {
-                        await setDisplayResolution(tagID, option.modeNumber);
-                        await showToast({
-                          title: "Resolution Set",
-                          message: `Changed to option ${option.modeNumber} (${option.resolution})`,
-                          style: Toast.Style.Success,
-                        });
-                        events.emit("refresh");
-                        pop();
-                      } catch (error) {
-                        await showToast({
-                          title: "Error Setting Resolution",
-                          message: error instanceof Error ? error.message : "Unknown error",
-                          style: Toast.Style.Failure,
-                        });
-                      }
-                    }}
-                  />
-                </ActionPanel>
-              }
-            />
-          );
-        })}
+        {safeOptions.map((option) => (
+          <ResolutionItem key={option.modeNumber} option={option} tagID={tagID} pop={pop} />
+        ))}
       </List.Section>
       <List.Section title="Unsafe Resolutions">
-        {unsafeOptions.map((option) => {
-          const accessoryTags: List.Item.Accessory[] = [];
-          if (option.hiDPI) {
-            accessoryTags.push({ tag: { value: "HiDPI", color: Color.Magenta } });
-          }
-          if (option.refreshRate) {
-            accessoryTags.push({ tag: { value: option.refreshRate, color: Color.Blue } });
-          }
-          if (option.bpc) {
-            accessoryTags.push({ tag: { value: option.bpc, color: Color.Green } });
-          }
-          if (option.native) {
-            accessoryTags.push({ tag: { value: "Native", color: Color.SecondaryText } });
-          }
-          return (
-            <List.Item
-              key={option.modeNumber}
-              icon={option.current ? Icon.Checkmark : Icon.Minus}
-              title={option.resolution}
-              subtitle={option.isDefault ? "Default" : undefined}
-              accessories={accessoryTags}
-              actions={
-                <ActionPanel>
-                  <Action
-                    title="Set Resolution"
-                    onAction={async () => {
-                      try {
-                        await setDisplayResolution(tagID, option.modeNumber);
-                        await showToast({
-                          title: "Resolution Set",
-                          message: `Changed to option ${option.modeNumber} (${option.resolution})`,
-                          style: Toast.Style.Success,
-                        });
-                        events.emit("refresh");
-                        pop();
-                      } catch (error) {
-                        await showToast({
-                          title: "Error Setting Resolution",
-                          message: error instanceof Error ? error.message : "Unknown error",
-                          style: Toast.Style.Failure,
-                        });
-                      }
-                    }}
-                  />
-                </ActionPanel>
-              }
-            />
-          );
-        })}
+        {unsafeOptions.map((option) => (
+          <ResolutionItem key={option.modeNumber} option={option} tagID={tagID} pop={pop} />
+        ))}
       </List.Section>
     </List>
   );

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { List, Color, ActionPanel, Action, showToast, Toast, Icon } from "@raycast/api";
+import { showFailureToast } from "@raycast/utils";
 import {
   fetchDisplays,
   fetchDisplayStatus,
@@ -25,6 +26,22 @@ function DisplayItem({ display, status, resolution, isMain, onToggle }: DisplayI
   const normalizedStatus = status || "Loading";
   const statusColor = normalizedStatus.toLowerCase() === "on" ? Color.Green : Color.Red;
 
+  // Helper to wrap actions with toast notifications.
+  async function handleAction(
+    actionFn: () => Promise<string>,
+    successTitle: string,
+    successMessage: string,
+    errorTitle: string
+  ) {
+    try {
+      const result = await actionFn();
+      await showToast({ title: successTitle, message: result || successMessage, style: Toast.Style.Success });
+      onToggle();
+    } catch (error) {
+      showFailureToast(error, { title: errorTitle });
+    }
+  }
+
   // Build accessories: always show status; if on, show resolution.
   const accessories: List.Item.Accessory[] = [
     { tag: { value: normalizedStatus, color: statusColor } },
@@ -44,45 +61,27 @@ function DisplayItem({ display, status, resolution, isMain, onToggle }: DisplayI
         <ActionPanel>
           <Action
             title="Toggle Display"
-            onAction={async () => {
-              try {
-                await toggleDisplay(display.tagID);
-                await showToast({
-                  title: "Display toggled",
-                  message: `${display.name} has been toggled.`,
-                  style: Toast.Style.Success,
-                });
-                onToggle();
-              } catch (error) {
-                await showToast({
-                  title: "Error toggling display",
-                  message: error instanceof Error ? error.message : "Unknown error",
-                  style: Toast.Style.Failure,
-                });
-              }
-            }}
+            onAction={() =>
+              handleAction(
+                () => toggleDisplay(display.tagID),
+                "Display toggled",
+                `${display.name} has been toggled.`,
+                "Error toggling display"
+              )
+            }
           />
           {normalizedStatus.toLowerCase() === "on" && (
             <>
               <Action
                 title="Toggle PIP"
-                onAction={async () => {
-                  try {
-                    await togglePIP(display.tagID);
-                    await showToast({
-                      title: "PIP toggled",
-                      message: `${display.name} PIP has been toggled.`,
-                      style: Toast.Style.Success,
-                    });
-                    onToggle();
-                  } catch (error) {
-                    await showToast({
-                      title: "Error toggling PIP",
-                      message: error instanceof Error ? error.message : "Unknown error",
-                      style: Toast.Style.Failure,
-                    });
-                  }
-                }}
+                onAction={() =>
+                  handleAction(
+                    () => togglePIP(display.tagID),
+                    "PIP toggled",
+                    `${display.name} PIP has been toggled.`,
+                    "Error toggling PIP"
+                  )
+                }
               />
               <Action.Push
                 title="Change Resolution"
