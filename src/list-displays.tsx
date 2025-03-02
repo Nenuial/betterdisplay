@@ -8,7 +8,7 @@ import {
   fetchMainDisplay,
   Display,
 } from "./utils";
-import { toggleDisplay, togglePIP, increaseBrightness, decreaseBrightness } from "./actions";
+import { toggleDisplay, togglePIP, increaseBrightness, decreaseBrightness, increaseContrast, decreaseContrast } from "./actions";
 import ResolutionList from "./list-resolutions";
 import events from "./events";
 
@@ -108,6 +108,32 @@ function DisplayItem({ display, status, resolution, isMain, onToggle }: DisplayI
                     "Brightness Decreased",
                     `${display.name} brightness decreased.`,
                     "Error decreasing brightness"
+                  )
+                }
+              />
+              <Action
+                title="Increase Contrast"
+                icon={Icon.CircleProgress50}
+                shortcut={{ modifiers: ["cmd", "opt"], key: "arrowUp" }}
+                onAction={() =>
+                  handleAction(
+                    () => increaseContrast(display.tagID),
+                    "Contrast Increased",
+                    `${display.name} contrast increased.`,
+                    "Error increasing contrast"
+                  )
+                }
+              />
+              <Action
+                title="Decrease Contrast"
+                icon={Icon.Circle}
+                shortcut={{ modifiers: ["cmd", "opt"], key: "arrowDown" }}
+                onAction={() =>
+                  handleAction(
+                    () => decreaseContrast(display.tagID),
+                    "Contrast Decreased",
+                    `${display.name} contrast decreased.`,
+                    "Error decreasing contrast"
                   )
                 }
               />

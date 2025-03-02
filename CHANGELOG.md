@@ -1,8 +1,12 @@
 # BetterDisplay Changelog
 
-## [Change resolutions] - 2025-03-01
+## [Feature] - {PR_MERGE_DATE}
+
+* Added the ability to change contrast.
+
+## [Feature] - 2025-03-01
 
 * Added the ability to change resolutions.
 * Added the ability to change brightness.
 
-## [Initial Version] - 2024-02-28
+## [Initial Version] - 2025-02-28

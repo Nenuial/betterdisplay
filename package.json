@@ -35,6 +35,23 @@
           "title": "10%"
         }
       ]
+    },
+    {
+      "name": "contrastIncrement",
+      "title": "Contrast Increment",
+      "type": "dropdown",
+      "required": true,
+      "description": "The contrast increment when changing the contrast of a display",
+      "data": [
+        {
+          "value": "0.05",
+          "title": "5%"
+        },
+        {
+          "value": "0.1",
+          "title": "10%"
+        }
+      ]
     }
   ],
   "dependencies": {

@@ -72,3 +72,28 @@ export async function decreaseBrightness(tagID: string): Promise<string> {
   const { stdout } = await execPromise(setCmd);
   return stdout.trim();
 }
+
+// New functions for contrast adjustments.
+export async function increaseContrast(tagID: string): Promise<string> {
+  const preferences = getPreferenceValues<{ contrastIncrement: string }>();
+  const increment = Number(preferences.contrastIncrement) || 0.05;
+  const getCmd = `/Applications/BetterDisplay.app/Contents/MacOS/BetterDisplay get -tagID=${tagID} -feature=contrast`;
+  const { stdout: currStr } = await execPromise(getCmd);
+  const currentContrast = parseFloat(currStr.trim());
+  const newContrast = Math.min(0.9, currentContrast + increment);
+  const setCmd = `/Applications/BetterDisplay.app/Contents/MacOS/BetterDisplay set -tagID=${tagID} -feature=contrast -value=${newContrast}`;
+  const { stdout } = await execPromise(setCmd);
+  return stdout.trim();
+}
+
+export async function decreaseContrast(tagID: string): Promise<string> {
+  const preferences = getPreferenceValues<{ contrastIncrement: string }>();
+  const increment = Number(preferences.contrastIncrement) || 0.05;
+  const getCmd = `/Applications/BetterDisplay.app/Contents/MacOS/BetterDisplay get -tagID=${tagID} -feature=contrast`;
+  const { stdout: currStr } = await execPromise(getCmd);
+  const currentContrast = parseFloat(currStr.trim());
+  const newContrast = Math.max(-0.9, currentContrast - increment);
+  const setCmd = `/Applications/BetterDisplay.app/Contents/MacOS/BetterDisplay set -tagID=${tagID} -feature=contrast -value=${newContrast}`;
+  const { stdout } = await execPromise(setCmd);
+  return stdout.trim();
+}
