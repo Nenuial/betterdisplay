@@ -13,7 +13,7 @@ async function runCommand(command: string, errorMsg: string): Promise<string> {
     const { stdout } = await execPromise(command);
     return stdout.trim();
   } catch (error) {
-    //console.error(`${errorMsg}:`, error);
+    console.error(`${errorMsg}:`, error);
     throw error;
   }
 }
@@ -62,18 +62,14 @@ export async function availabilityContrast(tagID: string): Promise<boolean> {
 
 // Brightness adjustments.
 export async function increaseBrightness(tagID: string): Promise<string> {
-  try {
-    const { brightnessIncrement } = getPreferenceValues<{ brightnessIncrement: string }>();
-    const increment = Number(brightnessIncrement) || 0.05;
-    const getCmd = `${cmdPath} get -tagID=${tagID} -feature=brightness`;
-    const currStr = await runCommand(getCmd, `Error getting current brightness for tagID ${tagID}`);
-    const currentValue = parseFloat(currStr);
-    const newValue = Math.min(1, currentValue + increment);
-    const setCmd = `${cmdPath} set -tagID=${tagID} -feature=brightness -value=${newValue}`;
-    return runCommand(setCmd, `Error setting brightness for tagID ${tagID}`);
-  } catch (error) {
-    throw error;
-  }
+  const { brightnessIncrement } = getPreferenceValues<{ brightnessIncrement: string }>();
+  const increment = Number(brightnessIncrement) || 0.05;
+  const getCmd = `${cmdPath} get -tagID=${tagID} -feature=brightness`;
+  const currStr = await runCommand(getCmd, `Error getting current brightness for tagID ${tagID}`);
+  const currentValue = parseFloat(currStr);
+  const newValue = Math.min(1, currentValue + increment);
+  const setCmd = `${cmdPath} set -tagID=${tagID} -feature=brightness -value=${newValue}`;
+  return runCommand(setCmd, `Error setting brightness for tagID ${tagID}`);
 }
 
 export async function decreaseBrightness(tagID: string): Promise<string> {

@@ -129,15 +129,16 @@ export default function ResolutionList(props: ResolutionListProps) {
     loadResolutions();
   }, [tagID]);
 
-  // Determine default value as the modeNumber of the current resolution.
-  const defaultValue = resolutionOptions.find((option) => option.current)?.modeNumber;
-
   // Divide options into safe and unsafe.
   const safeOptions = resolutionOptions.filter((option) => !option.unsafe);
   const unsafeOptions = resolutionOptions.filter((option) => option.unsafe);
 
   return (
-    <List isLoading={isLoading} navigationTitle={`Change Resolution for ${displayName}`} searchBarPlaceholder="Select a resolution">
+    <List
+      isLoading={isLoading}
+      navigationTitle={`Change Resolution for ${displayName}`}
+      searchBarPlaceholder="Select a resolution"
+    >
       <List.Section title="Safe Resolutions">
         {safeOptions.map((option) => (
           <ResolutionItem key={option.modeNumber} option={option} tagID={tagID} pop={pop} />

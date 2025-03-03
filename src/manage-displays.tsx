@@ -1,14 +1,28 @@
 import { useState, useEffect } from "react";
-import { List, Color, ActionPanel, Action, showToast, Toast, Icon, getPreferenceValues, Application, popToRoot } from "@raycast/api";
-import { showFailureToast } from "@raycast/utils";
 import {
-  fetchDisplays,
-  fetchDisplayStatus,
-  fetchDisplayResolution,
-  fetchMainDisplay,
-  Display,
-} from "./utils";
-import { toggleDisplay, togglePIP, increaseBrightness, decreaseBrightness, increaseContrast, decreaseContrast, availabilityBrightness, availabilityContrast } from "./actions";
+  List,
+  Color,
+  ActionPanel,
+  Action,
+  showToast,
+  Toast,
+  Icon,
+  getPreferenceValues,
+  Application,
+  popToRoot,
+} from "@raycast/api";
+import { showFailureToast } from "@raycast/utils";
+import { fetchDisplays, fetchDisplayStatus, fetchDisplayResolution, fetchMainDisplay, Display } from "./utils";
+import {
+  toggleDisplay,
+  togglePIP,
+  increaseBrightness,
+  decreaseBrightness,
+  increaseContrast,
+  decreaseContrast,
+  availabilityBrightness,
+  availabilityContrast,
+} from "./actions";
 import ResolutionList from "./list-resolutions";
 import events from "./events";
 
@@ -63,7 +77,7 @@ function DisplayItem({ display, status, resolution, isMain, onToggle }: DisplayI
     actionFn: () => Promise<string>,
     successTitle: string,
     successMessage: string,
-    errorTitle: string
+    errorTitle: string,
   ) {
     try {
       const result = await actionFn();
@@ -75,9 +89,7 @@ function DisplayItem({ display, status, resolution, isMain, onToggle }: DisplayI
   }
 
   // Build accessories: always show status; if on, show resolution.
-  const accessories: List.Item.Accessory[] = [
-    { tag: { value: normalizedStatus, color: statusColor } },
-  ];
+  const accessories: List.Item.Accessory[] = [{ tag: { value: normalizedStatus, color: statusColor } }];
   if (normalizedStatus.toLowerCase() === "on" && resolution && resolution !== "Loading") {
     accessories.unshift({ tag: { value: resolution, color: Color.Blue } });
   }
@@ -99,21 +111,21 @@ function DisplayItem({ display, status, resolution, isMain, onToggle }: DisplayI
                 () => toggleDisplay(display.tagID),
                 "Display toggled",
                 `${display.name} has been toggled.`,
-                "Error toggling display"
+                "Error toggling display",
               )
             }
           />
           {normalizedStatus.toLowerCase() === "on" && (
             <>
               <Action
-                title="Toggle PIP"
+                title="Toggle Pip"
                 icon={Icon.Image}
                 onAction={() =>
                   handleAction(
                     () => togglePIP(display.tagID),
                     "PIP toggled",
                     `${display.name} PIP has been toggled.`,
-                    "Error toggling PIP"
+                    "Error toggling PIP",
                   )
                 }
               />
@@ -129,7 +141,7 @@ function DisplayItem({ display, status, resolution, isMain, onToggle }: DisplayI
                         () => increaseBrightness(display.tagID),
                         "Brightness Increased",
                         `${display.name} brightness increased.`,
-                        "Error increasing brightness"
+                        "Error increasing brightness",
                       )
                     }
                   />
@@ -142,7 +154,7 @@ function DisplayItem({ display, status, resolution, isMain, onToggle }: DisplayI
                         () => decreaseBrightness(display.tagID),
                         "Brightness Decreased",
                         `${display.name} brightness decreased.`,
-                        "Error decreasing brightness"
+                        "Error decreasing brightness",
                       )
                     }
                   />
@@ -160,7 +172,7 @@ function DisplayItem({ display, status, resolution, isMain, onToggle }: DisplayI
                         () => increaseContrast(display.tagID),
                         "Contrast Increased",
                         `${display.name} contrast increased.`,
-                        "Error increasing contrast"
+                        "Error increasing contrast",
                       )
                     }
                   />
@@ -173,7 +185,7 @@ function DisplayItem({ display, status, resolution, isMain, onToggle }: DisplayI
                         () => decreaseContrast(display.tagID),
                         "Contrast Decreased",
                         `${display.name} contrast decreased.`,
-                        "Error decreasing contrast"
+                        "Error decreasing contrast",
                       )
                     }
                   />
@@ -240,7 +252,7 @@ export default function ManageDisplays() {
         displays.map(async (display) => {
           const status = await fetchDisplayStatus(display.tagID);
           newStatuses[display.tagID] = status;
-        })
+        }),
       );
       setStatuses(newStatuses);
 
@@ -256,7 +268,7 @@ export default function ManageDisplays() {
               console.error(`Error fetching resolution for display ${display.tagID}:`, error);
             }
           }
-        })
+        }),
       );
       setResolutions(newResolutions);
     }
@@ -284,7 +296,11 @@ export default function ManageDisplays() {
       isLoading={isLoading}
       searchBarPlaceholder="Filter displays by name"
       searchBarAccessory={
-        <List.Dropdown tooltip="Filter Display Type" storeValue={true} onChange={(newValue) => setFilter(newValue as FilterOption)}>
+        <List.Dropdown
+          tooltip="Filter Display Type"
+          storeValue={true}
+          onChange={(newValue) => setFilter(newValue as FilterOption)}
+        >
           <List.Dropdown.Section title="Filter">
             <List.Dropdown.Item value="all" title="All" />
             <List.Dropdown.Item value="displays" title="Displays" />

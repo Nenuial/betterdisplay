@@ -6,7 +6,7 @@ const execPromise = promisify(exec);
 export async function fetchDisplays(): Promise<string> {
   try {
     const { stdout } = await execPromise(
-      `/Applications/BetterDisplay.app/Contents/MacOS/BetterDisplay get -identifiers`
+      `/Applications/BetterDisplay.app/Contents/MacOS/BetterDisplay get -identifiers`,
     );
     return stdout;
   } catch (error) {
@@ -18,9 +18,9 @@ export async function fetchDisplays(): Promise<string> {
 export async function fetchDisplayStatus(tagID: string): Promise<string> {
   try {
     const { stdout } = await execPromise(
-      `/Applications/BetterDisplay.app/Contents/MacOS/BetterDisplay get -feature=connected -tagID=${tagID}`
+      `/Applications/BetterDisplay.app/Contents/MacOS/BetterDisplay get -feature=connected -tagID=${tagID}`,
     );
-    let status = stdout.trim();
+    const status = stdout.trim();
     // Normalize "on,on" to "on"
     if (status.toLowerCase() === "on,on") {
       return "on";
@@ -38,7 +38,7 @@ export async function fetchDisplayStatus(tagID: string): Promise<string> {
 export async function fetchDisplayResolution(tagID: string): Promise<string> {
   try {
     const { stdout } = await execPromise(
-      `/Applications/BetterDisplay.app/Contents/MacOS/BetterDisplay get -tagID=${tagID} -feature=resolution`
+      `/Applications/BetterDisplay.app/Contents/MacOS/BetterDisplay get -tagID=${tagID} -feature=resolution`,
     );
     return stdout.trim();
   } catch (error) {
@@ -50,7 +50,7 @@ export async function fetchDisplayResolution(tagID: string): Promise<string> {
 export async function fetchMainDisplay(): Promise<Display | null> {
   try {
     const { stdout } = await execPromise(
-      `/Applications/BetterDisplay.app/Contents/MacOS/BetterDisplay get -identifiers -displayWithMainStatus`
+      `/Applications/BetterDisplay.app/Contents/MacOS/BetterDisplay get -identifiers -displayWithMainStatus`,
     );
     // Parse the returned JSON object directly.
     return JSON.parse(stdout.trim());
