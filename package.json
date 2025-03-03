@@ -11,7 +11,7 @@
   "license": "MIT",
   "commands": [
     {
-      "name": "list-displays",
+      "name": "manage-displays",
       "title": "Manage Displays",
       "subtitle": "BetterDisplay",
       "description": "List all available displays",

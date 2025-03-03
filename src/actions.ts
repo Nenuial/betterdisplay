@@ -13,7 +13,7 @@ async function runCommand(command: string, errorMsg: string): Promise<string> {
     const { stdout } = await execPromise(command);
     return stdout.trim();
   } catch (error) {
-    console.error(`${errorMsg}:`, error);
+    //console.error(`${errorMsg}:`, error);
     throw error;
   }
 }
@@ -37,6 +37,27 @@ export async function fetchDisplayModeList(tagID: string): Promise<string> {
 export async function setDisplayResolution(tagID: string, modeNumber: string): Promise<string> {
   const command = `${cmdPath} set -tagID=${tagID} -feature=displayModeNumber -value=${modeNumber}`;
   return runCommand(command, `Error setting display resolution for tagID ${tagID}`);
+}
+
+// Availability functions to check brightness/contrast capabilities.
+export async function availabilityBrightness(tagID: string): Promise<boolean> {
+  const command = `${cmdPath} get -tagID=${tagID} -feature=brightness`;
+  try {
+    await runCommand(command, `Error checking brightness for tagID ${tagID}`);
+    return true;
+  } catch (error) {
+    return false;
+  }
+}
+
+export async function availabilityContrast(tagID: string): Promise<boolean> {
+  const command = `${cmdPath} get -tagID=${tagID} -feature=contrast`;
+  try {
+    await runCommand(command, `Error checking contrast for tagID ${tagID}`);
+    return true;
+  } catch (error) {
+    return false;
+  }
 }
 
 // Brightness adjustments.

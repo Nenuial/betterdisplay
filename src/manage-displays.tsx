@@ -8,7 +8,7 @@ import {
   fetchMainDisplay,
   Display,
 } from "./utils";
-import { toggleDisplay, togglePIP, increaseBrightness, decreaseBrightness, increaseContrast, decreaseContrast } from "./actions";
+import { toggleDisplay, togglePIP, increaseBrightness, decreaseBrightness, increaseContrast, decreaseContrast, availabilityBrightness, availabilityContrast } from "./actions";
 import ResolutionList from "./list-resolutions";
 import events from "./events";
 
@@ -38,6 +38,20 @@ function verifyAppAvailability() {
 function DisplayItem({ display, status, resolution, isMain, onToggle }: DisplayItemProps) {
   const normalizedStatus = status || "Loading";
   const statusColor = normalizedStatus.toLowerCase() === "on" ? Color.Green : Color.Red;
+
+  // New state to track availability of brightness and contrast functions.
+  const [brightnessAvailable, setBrightnessAvailable] = useState(false);
+  const [contrastAvailable, setContrastAvailable] = useState(false);
+
+  useEffect(() => {
+    async function checkAvailability() {
+      const availB = await availabilityBrightness(display.tagID);
+      const availC = await availabilityContrast(display.tagID);
+      setBrightnessAvailable(availB);
+      setContrastAvailable(availC);
+    }
+    checkAvailability();
+  }, [display.tagID]);
 
   // Helper to wrap actions with toast notifications.
   async function handleAction(
@@ -98,58 +112,68 @@ function DisplayItem({ display, status, resolution, isMain, onToggle }: DisplayI
                   )
                 }
               />
-              <Action
-                title="Increase Brightness"
-                icon={Icon.ArrowUp}
-                shortcut={{ modifiers: ["cmd", "shift"], key: "arrowUp" }}
-                onAction={() =>
-                  handleAction(
-                    () => increaseBrightness(display.tagID),
-                    "Brightness Increased",
-                    `${display.name} brightness increased.`,
-                    "Error increasing brightness"
-                  )
-                }
-              />
-              <Action
-                title="Decrease Brightness"
-                icon={Icon.ArrowDown}
-                shortcut={{ modifiers: ["cmd", "shift"], key: "arrowDown" }}
-                onAction={() =>
-                  handleAction(
-                    () => decreaseBrightness(display.tagID),
-                    "Brightness Decreased",
-                    `${display.name} brightness decreased.`,
-                    "Error decreasing brightness"
-                  )
-                }
-              />
-              <Action
-                title="Increase Contrast"
-                icon={Icon.CircleProgress50}
-                shortcut={{ modifiers: ["cmd", "opt"], key: "arrowUp" }}
-                onAction={() =>
-                  handleAction(
-                    () => increaseContrast(display.tagID),
-                    "Contrast Increased",
-                    `${display.name} contrast increased.`,
-                    "Error increasing contrast"
-                  )
-                }
-              />
-              <Action
-                title="Decrease Contrast"
-                icon={Icon.Circle}
-                shortcut={{ modifiers: ["cmd", "opt"], key: "arrowDown" }}
-                onAction={() =>
-                  handleAction(
-                    () => decreaseContrast(display.tagID),
-                    "Contrast Decreased",
-                    `${display.name} contrast decreased.`,
-                    "Error decreasing contrast"
-                  )
-                }
-              />
+              {/* Only render brightness actions if available */}
+              {brightnessAvailable && (
+                <>
+                  <Action
+                    title="Increase Brightness"
+                    icon={Icon.ArrowUp}
+                    shortcut={{ modifiers: ["cmd", "shift"], key: "arrowUp" }}
+                    onAction={() =>
+                      handleAction(
+                        () => increaseBrightness(display.tagID),
+                        "Brightness Increased",
+                        `${display.name} brightness increased.`,
+                        "Error increasing brightness"
+                      )
+                    }
+                  />
+                  <Action
+                    title="Decrease Brightness"
+                    icon={Icon.ArrowDown}
+                    shortcut={{ modifiers: ["cmd", "shift"], key: "arrowDown" }}
+                    onAction={() =>
+                      handleAction(
+                        () => decreaseBrightness(display.tagID),
+                        "Brightness Decreased",
+                        `${display.name} brightness decreased.`,
+                        "Error decreasing brightness"
+                      )
+                    }
+                  />
+                </>
+              )}
+              {/* Only render contrast actions if available */}
+              {contrastAvailable && (
+                <>
+                  <Action
+                    title="Increase Contrast"
+                    icon={Icon.CircleProgress50}
+                    shortcut={{ modifiers: ["cmd", "opt"], key: "arrowUp" }}
+                    onAction={() =>
+                      handleAction(
+                        () => increaseContrast(display.tagID),
+                        "Contrast Increased",
+                        `${display.name} contrast increased.`,
+                        "Error increasing contrast"
+                      )
+                    }
+                  />
+                  <Action
+                    title="Decrease Contrast"
+                    icon={Icon.Circle}
+                    shortcut={{ modifiers: ["cmd", "opt"], key: "arrowDown" }}
+                    onAction={() =>
+                      handleAction(
+                        () => decreaseContrast(display.tagID),
+                        "Contrast Decreased",
+                        `${display.name} contrast decreased.`,
+                        "Error decreasing contrast"
+                      )
+                    }
+                  />
+                </>
+              )}
               <Action.Push
                 title="Change Resolution"
                 icon={Icon.ArrowsExpand}
@@ -164,7 +188,7 @@ function DisplayItem({ display, status, resolution, isMain, onToggle }: DisplayI
   );
 }
 
-export default function ListDisplays() {
+export default function ManageDisplays() {
   verifyAppAvailability();
 
   const [displays, setDisplays] = useState<Display[]>([]);
