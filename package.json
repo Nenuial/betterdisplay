@@ -20,11 +20,20 @@
   ],
   "preferences": [
     {
+      "name": "betterdisplayApp",
+      "title": "BetterDisplay App",
+      "description": "Select the BetterDisplay app",
+      "type": "appPicker",
+      "required": false,
+      "default": "pro.betterdisplay.BetterDisplay"
+    },
+    {
       "name": "brightnessIncrement",
       "title": "Brightness Increment",
       "type": "dropdown",
-      "required": true,
+      "required": false,
       "description": "The brightness increment when changing the brightness of a display",
+      "default": "0.05",
       "data": [
         {
           "value": "0.05",
@@ -40,8 +49,9 @@
       "name": "contrastIncrement",
       "title": "Contrast Increment",
       "type": "dropdown",
-      "required": true,
+      "required": false,
       "description": "The contrast increment when changing the contrast of a display",
+      "default": "0.05",
       "data": [
         {
           "value": "0.05",

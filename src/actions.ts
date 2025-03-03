@@ -1,99 +1,90 @@
 import { exec } from "child_process";
 import { promisify } from "util";
-import { getPreferenceValues } from "@raycast/api";
+import { getPreferenceValues, Application } from "@raycast/api";
 
 const execPromise = promisify(exec);
+const cliPath = "Contents/MacOS/BetterDisplay";
+const { betterdisplayApp } = getPreferenceValues<{ betterdisplayApp: Application }>();
+const cmdPath = `${betterdisplayApp.path}/${cliPath}`;
 
-export async function toggleDisplay(tagID: string): Promise<string> {
+// Helper function to run commands uniformly.
+async function runCommand(command: string, errorMsg: string): Promise<string> {
   try {
-    const command = `/Applications/BetterDisplay.app/Contents/MacOS/BetterDisplay toggle -tagID=${tagID} -feature=connected`;
     const { stdout } = await execPromise(command);
     return stdout.trim();
   } catch (error) {
-    console.error(`Error toggling display with tagID ${tagID}:`, error);
+    console.error(`${errorMsg}:`, error);
     throw error;
   }
+}
+
+// Display actions.
+export async function toggleDisplay(tagID: string): Promise<string> {
+  const command = `${cmdPath} toggle -tagID=${tagID} -feature=connected`;
+  return runCommand(command, `Error toggling display with tagID ${tagID}`);
 }
 
 export async function togglePIP(tagID: string): Promise<string> {
-  try {
-    const command = `/Applications/BetterDisplay.app/Contents/MacOS/BetterDisplay toggle -tagID=${tagID} -feature=pip`;
-    const { stdout } = await execPromise(command);
-    return stdout.trim();
-  } catch (error) {
-    console.error(`Error toggling PIP for display with tagID ${tagID}:`, error);
-    throw error;
-  }
+  const command = `${cmdPath} toggle -tagID=${tagID} -feature=pip`;
+  return runCommand(command, `Error toggling PIP for display with tagID ${tagID}`);
 }
 
 export async function fetchDisplayModeList(tagID: string): Promise<string> {
-  try {
-    const command = `/Applications/BetterDisplay.app/Contents/MacOS/BetterDisplay get -tagID=${tagID} -feature=displayModeList`;
-    const { stdout } = await execPromise(command);
-    return stdout;
-  } catch (error) {
-    console.error(`Error fetching display mode list for tagID ${tagID}:`, error);
-    throw error;
-  }
+  const command = `${cmdPath} get -tagID=${tagID} -feature=displayModeList`;
+  return runCommand(command, `Error fetching display mode list for tagID ${tagID}`);
 }
 
 export async function setDisplayResolution(tagID: string, modeNumber: string): Promise<string> {
+  const command = `${cmdPath} set -tagID=${tagID} -feature=displayModeNumber -value=${modeNumber}`;
+  return runCommand(command, `Error setting display resolution for tagID ${tagID}`);
+}
+
+// Brightness adjustments.
+export async function increaseBrightness(tagID: string): Promise<string> {
   try {
-    const command = `/Applications/BetterDisplay.app/Contents/MacOS/BetterDisplay set -tagID=${tagID} -feature=displayModeNumber -value=${modeNumber}`;
-    const { stdout } = await execPromise(command);
-    return stdout.trim();
+    const { brightnessIncrement } = getPreferenceValues<{ brightnessIncrement: string }>();
+    const increment = Number(brightnessIncrement) || 0.05;
+    const getCmd = `${cmdPath} get -tagID=${tagID} -feature=brightness`;
+    const currStr = await runCommand(getCmd, `Error getting current brightness for tagID ${tagID}`);
+    const currentValue = parseFloat(currStr);
+    const newValue = Math.min(1, currentValue + increment);
+    const setCmd = `${cmdPath} set -tagID=${tagID} -feature=brightness -value=${newValue}`;
+    return runCommand(setCmd, `Error setting brightness for tagID ${tagID}`);
   } catch (error) {
-    console.error(`Error setting display resolution for tagID ${tagID}:`, error);
     throw error;
   }
 }
 
-// New functions for brightness adjustments.
-export async function increaseBrightness(tagID: string): Promise<string> {
-  const preferences = getPreferenceValues<{ brightnessIncrement: string }>();
-  const increment = Number(preferences.brightnessIncrement) || 0.05;
-  const getCmd = `/Applications/BetterDisplay.app/Contents/MacOS/BetterDisplay get -tagID=${tagID} -feature=brightness`;
-  const { stdout: currStr } = await execPromise(getCmd);
-  const currentBrightness = parseFloat(currStr.trim());
-  const newBrightness = Math.min(1, currentBrightness + increment);
-  const setCmd = `/Applications/BetterDisplay.app/Contents/MacOS/BetterDisplay set -tagID=${tagID} -feature=brightness -value=${newBrightness}`;
-  const { stdout } = await execPromise(setCmd);
-  return stdout.trim();
-}
-
 export async function decreaseBrightness(tagID: string): Promise<string> {
-  const preferences = getPreferenceValues<{ brightnessIncrement: string }>();
-  const increment = Number(preferences.brightnessIncrement) || 0.05;
-  const getCmd = `/Applications/BetterDisplay.app/Contents/MacOS/BetterDisplay get -tagID=${tagID} -feature=brightness`;
-  const { stdout: currStr } = await execPromise(getCmd);
-  const currentBrightness = parseFloat(currStr.trim());
-  const newBrightness = Math.max(0, currentBrightness - increment);
-  const setCmd = `/Applications/BetterDisplay.app/Contents/MacOS/BetterDisplay set -tagID=${tagID} -feature=brightness -value=${newBrightness}`;
-  const { stdout } = await execPromise(setCmd);
-  return stdout.trim();
+  const { brightnessIncrement } = getPreferenceValues<{ brightnessIncrement: string }>();
+  const increment = Number(brightnessIncrement) || 0.05;
+  const getCmd = `${cmdPath} get -tagID=${tagID} -feature=brightness`;
+  const currStr = await runCommand(getCmd, `Error getting current brightness for tagID ${tagID}`);
+  const currentValue = parseFloat(currStr);
+  const newValue = Math.max(0, currentValue - increment);
+  const setCmd = `${cmdPath} set -tagID=${tagID} -feature=brightness -value=${newValue}`;
+  return runCommand(setCmd, `Error setting brightness for tagID ${tagID}`);
 }
 
-// New functions for contrast adjustments.
+// Contrast adjustments.
 export async function increaseContrast(tagID: string): Promise<string> {
-  const preferences = getPreferenceValues<{ contrastIncrement: string }>();
-  const increment = Number(preferences.contrastIncrement) || 0.05;
-  const getCmd = `/Applications/BetterDisplay.app/Contents/MacOS/BetterDisplay get -tagID=${tagID} -feature=contrast`;
-  const { stdout: currStr } = await execPromise(getCmd);
-  const currentContrast = parseFloat(currStr.trim());
-  const newContrast = Math.min(0.9, currentContrast + increment);
-  const setCmd = `/Applications/BetterDisplay.app/Contents/MacOS/BetterDisplay set -tagID=${tagID} -feature=contrast -value=${newContrast}`;
-  const { stdout } = await execPromise(setCmd);
-  return stdout.trim();
+  const { contrastIncrement } = getPreferenceValues<{ contrastIncrement: string }>();
+  const increment = Number(contrastIncrement) || 0.05;
+  const getCmd = `${cmdPath} get -tagID=${tagID} -feature=contrast`;
+  const currStr = await runCommand(getCmd, `Error getting current contrast for tagID ${tagID}`);
+  const currentValue = parseFloat(currStr);
+  const newValue = Math.min(0.9, currentValue + increment);
+  const setCmd = `${cmdPath} set -tagID=${tagID} -feature=contrast -value=${newValue}`;
+  return runCommand(setCmd, `Error setting contrast for tagID ${tagID}`);
 }
 
 export async function decreaseContrast(tagID: string): Promise<string> {
-  const preferences = getPreferenceValues<{ contrastIncrement: string }>();
-  const increment = Number(preferences.contrastIncrement) || 0.05;
-  const getCmd = `/Applications/BetterDisplay.app/Contents/MacOS/BetterDisplay get -tagID=${tagID} -feature=contrast`;
-  const { stdout: currStr } = await execPromise(getCmd);
-  const currentContrast = parseFloat(currStr.trim());
-  const newContrast = Math.max(-0.9, currentContrast - increment);
-  const setCmd = `/Applications/BetterDisplay.app/Contents/MacOS/BetterDisplay set -tagID=${tagID} -feature=contrast -value=${newContrast}`;
-  const { stdout } = await execPromise(setCmd);
-  return stdout.trim();
+  const { contrastIncrement } = getPreferenceValues<{ contrastIncrement: string }>();
+  const increment = Number(contrastIncrement) || 0.05;
+  const getCmd = `${cmdPath} get -tagID=${tagID} -feature=contrast`;
+  const currStr = await runCommand(getCmd, `Error getting current contrast for tagID ${tagID}`);
+  const currentValue = parseFloat(currStr);
+  const newValue = Math.max(-0.9, currentValue - increment);
+  const setCmd = `${cmdPath} set -tagID=${tagID} -feature=contrast -value=${newValue}`;
+  return runCommand(setCmd, `Error setting contrast for tagID ${tagID}`);
 }

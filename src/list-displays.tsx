@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { List, Color, ActionPanel, Action, showToast, Toast, Icon } from "@raycast/api";
+import { List, Color, ActionPanel, Action, showToast, Toast, Icon, getPreferenceValues, Application, popToRoot } from "@raycast/api";
 import { showFailureToast } from "@raycast/utils";
 import {
   fetchDisplays,
@@ -21,6 +21,19 @@ type DisplayItemProps = {
   isMain: boolean;
   onToggle: () => void;
 };
+
+function verifyAppAvailability() {
+  const { betterdisplayApp } = getPreferenceValues<{ betterdisplayApp: Application }>();
+
+  if (betterdisplayApp.name !== "BetterDisplay") {
+    showFailureToast("BetterDisplay app not set", {
+      title: "BetterDisplay app not set",
+      message: "Please set the BetterDisplay app in the extension preferences.",
+    });
+
+    popToRoot();
+  }
+}
 
 function DisplayItem({ display, status, resolution, isMain, onToggle }: DisplayItemProps) {
   const normalizedStatus = status || "Loading";
@@ -152,6 +165,8 @@ function DisplayItem({ display, status, resolution, isMain, onToggle }: DisplayI
 }
 
 export default function ListDisplays() {
+  verifyAppAvailability();
+
   const [displays, setDisplays] = useState<Display[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [statuses, setStatuses] = useState<{ [tagID: string]: string }>({});
