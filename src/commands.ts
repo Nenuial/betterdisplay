@@ -11,12 +11,11 @@ if (!betterdisplayApp?.path) {
     title: "BetterDisplay app not set",
     message: "Please set the BetterDisplay app in the extension preferences.",
   });
-
   popToRoot();
 }
 const cmdPath = `${betterdisplayApp.path}/${cliPath}`;
 
-// Helper function to run commands uniformly.
+// ...helper function...
 async function runCommand(command: string, errorMsg: string): Promise<string> {
   try {
     const { stdout } = await execPromise(command);
@@ -27,7 +26,6 @@ async function runCommand(command: string, errorMsg: string): Promise<string> {
   }
 }
 
-// Display actions.
 export async function toggleDisplay(tagID: string): Promise<string> {
   const command = `${cmdPath} toggle -tagID=${tagID} -feature=connected`;
   return runCommand(command, `Error toggling display with tagID ${tagID}`);
@@ -48,7 +46,6 @@ export async function setDisplayResolution(tagID: string, modeNumber: string): P
   return runCommand(command, `Error setting display resolution for tagID ${tagID}`);
 }
 
-// Availability functions to check brightness/contrast capabilities.
 export async function availabilityBrightness(tagID: string): Promise<boolean> {
   const command = `${cmdPath} get -tagID=${tagID} -feature=brightness`;
   try {
@@ -69,7 +66,6 @@ export async function availabilityContrast(tagID: string): Promise<boolean> {
   }
 }
 
-// Brightness adjustments.
 export async function increaseBrightness(tagID: string): Promise<string> {
   const { brightnessIncrement } = getPreferenceValues<{ brightnessIncrement: string }>();
   const increment = Number(brightnessIncrement) || 0.05;
@@ -92,7 +88,6 @@ export async function decreaseBrightness(tagID: string): Promise<string> {
   return runCommand(setCmd, `Error setting brightness for tagID ${tagID}`);
 }
 
-// Contrast adjustments.
 export async function increaseContrast(tagID: string): Promise<string> {
   const { contrastIncrement } = getPreferenceValues<{ contrastIncrement: string }>();
   const increment = Number(contrastIncrement) || 0.05;
@@ -114,3 +109,63 @@ export async function decreaseContrast(tagID: string): Promise<string> {
   const setCmd = `${cmdPath} set -tagID=${tagID} -feature=contrast -value=${newValue}`;
   return runCommand(setCmd, `Error setting contrast for tagID ${tagID}`);
 }
+
+export async function fetchDisplays(): Promise<string> {
+  try {
+    const { stdout } = await execPromise(`${cmdPath} get -identifiers`);
+    return stdout;
+  } catch (error) {
+    console.error("Failed to fetch displays", error);
+    return "";
+  }
+}
+
+export async function fetchDisplayStatus(tagID: string): Promise<string> {
+  try {
+    const { stdout } = await execPromise(`${cmdPath} get -feature=connected -tagID=${tagID}`);
+    const status = stdout.trim();
+    if (status.toLowerCase() === "on,on") return "on";
+    if (status.toLowerCase() === "on,off") return "off";
+    return status;
+  } catch (error) {
+    console.error(`Failed to fetch display status for tagID ${tagID}`, error);
+    return "off";
+  }
+}
+
+export async function fetchDisplayResolution(tagID: string): Promise<string> {
+  try {
+    const { stdout } = await execPromise(`${cmdPath} get -tagID=${tagID} -feature=resolution`);
+    return stdout.trim();
+  } catch (error) {
+    console.error(`Failed to fetch display resolution for tagID ${tagID}`, error);
+    return "N/A";
+  }
+}
+
+export async function fetchMainDisplay(): Promise<Display | null> {
+  try {
+    const { stdout } = await execPromise(`${cmdPath} get -identifiers -displayWithMainStatus`);
+    return JSON.parse(stdout.trim());
+  } catch (error) {
+    console.error("Failed to fetch main display", error);
+    return null;
+  }
+}
+
+export type Display = {
+  UUID: string;
+  alphanumericSerial?: string;
+  deviceType: string;
+  displayID: string;
+  model: string;
+  name: string;
+  originalName?: string;
+  productName?: string;
+  registryLocation?: string;
+  serial: string;
+  tagID: string;
+  vendor: string;
+  weekOfManufacture?: string;
+  yearOfManufacture?: string;
+};

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { List, ActionPanel, Action, showToast, Toast, useNavigation, Color, Icon } from "@raycast/api";
-import { fetchDisplayModeList, setDisplayResolution } from "./actions";
+import { fetchDisplayModeList, setDisplayResolution } from "./commands";
 import events from "./events";
 import { showFailureToast } from "@raycast/utils";
 
