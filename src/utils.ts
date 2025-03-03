@@ -1,13 +1,19 @@
 import { exec } from "child_process";
 import { promisify } from "util";
+import { getPreferenceValues, Application } from "@raycast/api";
 
 const execPromise = promisify(exec);
 
+const cliPath = "Contents/MacOS/BetterDisplay";
+const { betterdisplayApp } = getPreferenceValues<{ betterdisplayApp: Application }>();
+if (!betterdisplayApp?.path) {
+  throw new Error("BetterDisplay app path not configured in preferences");
+}
+const cmdPath = `${betterdisplayApp.path}/${cliPath}`;
+
 export async function fetchDisplays(): Promise<string> {
   try {
-    const { stdout } = await execPromise(
-      `/Applications/BetterDisplay.app/Contents/MacOS/BetterDisplay get -identifiers`,
-    );
+    const { stdout } = await execPromise(`${cmdPath} get -identifiers`);
     return stdout;
   } catch (error) {
     console.error("Failed to fetch displays", error);
@@ -17,9 +23,7 @@ export async function fetchDisplays(): Promise<string> {
 
 export async function fetchDisplayStatus(tagID: string): Promise<string> {
   try {
-    const { stdout } = await execPromise(
-      `/Applications/BetterDisplay.app/Contents/MacOS/BetterDisplay get -feature=connected -tagID=${tagID}`,
-    );
+    const { stdout } = await execPromise(`${cmdPath} get -feature=connected -tagID=${tagID}`);
     const status = stdout.trim();
     // Normalize "on,on" to "on"
     if (status.toLowerCase() === "on,on") {
@@ -37,9 +41,7 @@ export async function fetchDisplayStatus(tagID: string): Promise<string> {
 
 export async function fetchDisplayResolution(tagID: string): Promise<string> {
   try {
-    const { stdout } = await execPromise(
-      `/Applications/BetterDisplay.app/Contents/MacOS/BetterDisplay get -tagID=${tagID} -feature=resolution`,
-    );
+    const { stdout } = await execPromise(`${cmdPath} get -tagID=${tagID} -feature=resolution`);
     return stdout.trim();
   } catch (error) {
     console.error(`Failed to fetch display resolution for tagID ${tagID}`, error);
@@ -49,9 +51,7 @@ export async function fetchDisplayResolution(tagID: string): Promise<string> {
 
 export async function fetchMainDisplay(): Promise<Display | null> {
   try {
-    const { stdout } = await execPromise(
-      `/Applications/BetterDisplay.app/Contents/MacOS/BetterDisplay get -identifiers -displayWithMainStatus`,
-    );
+    const { stdout } = await execPromise(`${cmdPath} get -identifiers -displayWithMainStatus`);
     // Parse the returned JSON object directly.
     return JSON.parse(stdout.trim());
   } catch (error) {
