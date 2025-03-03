@@ -45,13 +45,18 @@ function DisplayItem({ display, status, resolution, isMain, onToggle }: DisplayI
 
   useEffect(() => {
     async function checkAvailability() {
-      const availB = await availabilityBrightness(display.tagID);
-      const availC = await availabilityContrast(display.tagID);
-      setBrightnessAvailable(availB);
-      setContrastAvailable(availC);
+      if (normalizedStatus.toLowerCase() === "on") {
+        const availB = await availabilityBrightness(display.tagID);
+        const availC = await availabilityContrast(display.tagID);
+        setBrightnessAvailable(availB);
+        setContrastAvailable(availC);
+      } else {
+        setBrightnessAvailable(false);
+        setContrastAvailable(false);
+      }
     }
     checkAvailability();
-  }, [display.tagID]);
+  }, [display.tagID, normalizedStatus]);
 
   // Helper to wrap actions with toast notifications.
   async function handleAction(
@@ -74,7 +79,7 @@ function DisplayItem({ display, status, resolution, isMain, onToggle }: DisplayI
     { tag: { value: normalizedStatus, color: statusColor } },
   ];
   if (normalizedStatus.toLowerCase() === "on" && resolution && resolution !== "Loading") {
-    accessories.push({ tag: { value: resolution, color: Color.Blue } });
+    accessories.unshift({ tag: { value: resolution, color: Color.Blue } });
   }
 
   return (
