@@ -49,7 +49,7 @@ function verifyAppAvailability() {
   } catch (error) {
     showFailureToast("Failed to verify BetterDisplay app", {
       title: "Preference Error",
-      message: "Could not access extension preferences."
+      message: "Could not access extension preferences.",
     });
     popToRoot();
   }
