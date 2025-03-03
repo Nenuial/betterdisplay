@@ -41,7 +41,7 @@ export async function fetchDisplayStatus(tagID: string): Promise<string> {
     return status;
   } catch (error) {
     console.error(`Failed to fetch display status for tagID ${tagID}`, error);
-    return "Off";
+    return "off";
   }
 }
 
